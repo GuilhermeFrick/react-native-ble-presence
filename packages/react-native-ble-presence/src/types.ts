@@ -72,3 +72,57 @@ export type MatchingStrategy = {
   };
 };
 
+export type BleScannerStatus = 'idle' | 'scanning' | 'stopped' | 'error';
+
+export type BleScannerOptions = {
+  minRssi?: number;
+  allowDuplicates?: boolean;
+};
+
+export type BleScannerListener = (scanResult: BleScanResult) => void;
+
+export type BleScanner = {
+  startScan(options?: BleScannerOptions): Promise<void>;
+  stopScan(): Promise<void>;
+  subscribe(listener: BleScannerListener): () => void;
+};
+
+export type SaveTagRegistrationInput<TEntityId extends string = string> = {
+  entityId: TEntityId;
+  fingerprint: BleFingerprint;
+};
+
+export type PresenceEventType = 'matched' | 'lost';
+
+export type PresenceEvent<TEntityId extends string = string> = {
+  type: PresenceEventType;
+  entityId: TEntityId;
+  match?: PresenceMatch<TEntityId>;
+  occurredAt: string;
+};
+
+export type BlePresenceAdapter<TEntityId extends string = string> = {
+  getRegisteredTags(): Promise<RegisteredTag<TEntityId>[]>;
+  saveTagRegistration(input: SaveTagRegistrationInput<TEntityId>): Promise<RegisteredTag<TEntityId>>;
+  reportPresenceEvent?(event: PresenceEvent<TEntityId>): Promise<void>;
+};
+
+export type BlePresenceConfig = {
+  scanner?: BleScannerOptions;
+  matchingStrategy?: MatchingStrategy;
+  clock?: () => string;
+};
+
+export type TagRegistrationResult<TEntityId extends string = string> = {
+  registeredTag: RegisteredTag<TEntityId>;
+  quality: FingerprintQuality;
+};
+
+export type BlePresenceState<TEntityId extends string = string> = {
+  scannerStatus: BleScannerStatus;
+  nearbyTags: BleScanResult[];
+  registeredTags: RegisteredTag<TEntityId>[];
+  currentMatch: PresenceMatch<TEntityId> | null;
+  error: Error | null;
+};
+

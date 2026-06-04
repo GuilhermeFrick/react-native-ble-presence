@@ -38,11 +38,40 @@ npm test
 npm run build
 ```
 
+## Uso previsto
+
+```tsx
+import {
+  BlePresenceProvider,
+  usePresenceDetection,
+  useTagRegistration,
+} from '@guilhermefrick/react-native-ble-presence';
+
+function App() {
+  return (
+    <BlePresenceProvider adapter={adapter}>
+      <PresenceFeature />
+    </BlePresenceProvider>
+  );
+}
+
+function PresenceFeature() {
+  const { currentMatch, refreshRegisteredTags } = usePresenceDetection();
+  const { nearbyTags, registerTag } = useTagRegistration();
+
+  // O app cliente decide quando buscar tags cadastradas,
+  // qual entidade sera registrada e como exibir a UI.
+}
+```
+
 ## Status tecnico
 
 - Monorepo npm workspaces.
 - Pacote SDK em TypeScript.
 - Core inicial com fingerprint e matching.
+- Provider e hooks headless iniciais.
+- Contratos de adapter para backend/storage do cliente.
+- Scanner BLE abstrato para permitir mock, testes e integracao nativa posterior.
 - Testes unitarios com Vitest.
 - Dockerfile para ambiente Android/Node.
 - CI inicial com validacao Linux e smoke iOS em macOS.
