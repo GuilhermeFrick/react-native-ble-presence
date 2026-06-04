@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@guilhermefrick/react-native-ble-presence": "file:../../packages/react-native-ble-presence",
-    "react": "19.2.7",
+    "react": "19.2.3",
     "react-native": "0.85.3"
   },
   "devDependencies": {
