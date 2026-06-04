@@ -1,0 +1,15 @@
+node_modules/
+dist/
+build/
+coverage/
+.DS_Store
+.env
+.env.*
+*.log
+android/.gradle/
+android/build/
+ios/Pods/
+ios/build/
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+

@@ -21,3 +21,28 @@ O objetivo do projeto e permitir que aplicativos React Native incorporem recurso
 - Componentes de UI opcionais para fluxo de cadastro e diagnostico.
 - App exemplo para demonstrar integracao completa.
 
+## Estrutura inicial
+
+```txt
+packages/react-native-ble-presence
+examples/demo-app
+docs
+```
+
+## Desenvolvimento
+
+```bash
+npm install
+npm run typecheck
+npm test
+npm run build
+```
+
+## Status tecnico
+
+- Monorepo npm workspaces.
+- Pacote SDK em TypeScript.
+- Core inicial com fingerprint e matching.
+- Testes unitarios com Vitest.
+- Dockerfile para ambiente Android/Node.
+- CI inicial com validacao Linux e smoke iOS em macOS.
