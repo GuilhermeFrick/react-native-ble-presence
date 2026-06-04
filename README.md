@@ -43,13 +43,16 @@ npm run build
 ```tsx
 import {
   BlePresenceProvider,
+  createBlePlxScanner,
   usePresenceDetection,
   useTagRegistration,
 } from '@guilhermefrick/react-native-ble-presence';
 
+const scanner = createBlePlxScanner();
+
 function App() {
   return (
-    <BlePresenceProvider adapter={adapter}>
+    <BlePresenceProvider adapter={adapter} scanner={scanner}>
       <PresenceFeature />
     </BlePresenceProvider>
   );
@@ -71,7 +74,8 @@ function PresenceFeature() {
 - Core inicial com fingerprint e matching.
 - Provider e hooks headless iniciais.
 - Contratos de adapter para backend/storage do cliente.
-- Scanner BLE abstrato para permitir mock, testes e integracao nativa posterior.
+- Scanner BLE abstrato e implementacao inicial com `react-native-ble-plx`.
+- Normalizacao testada de resultados BLE Android/iOS.
 - Testes unitarios com Vitest.
 - Dockerfile para ambiente Android/Node.
 - CI inicial com validacao Linux e smoke iOS em macOS.

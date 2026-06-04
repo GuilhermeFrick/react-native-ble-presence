@@ -7,4 +7,6 @@ export * from './react/hooks/useBlePresence';
 export * from './react/hooks/useBleScanner';
 export * from './react/hooks/useTagRegistration';
 export * from './react/hooks/usePresenceDetection';
-
+export * from './native/scanner/createBlePlxScanner';
+export * from './native/scanner/noopBleScanner';
+export * from './native/scanner/normalizeBlePlxDevice';
