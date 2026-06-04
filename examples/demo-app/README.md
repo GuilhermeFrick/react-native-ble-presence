@@ -1,15 +1,26 @@
-# Demo App
+# BLE Presence Demo App
 
-Aplicativo de exemplo que demonstrara a integracao do SDK `@guilhermefrick/react-native-ble-presence`.
+Aplicativo React Native de exemplo para demonstrar a integracao com o SDK `@guilhermefrick/react-native-ble-presence`.
 
-## Fluxos previstos
+## Objetivo
 
-- verificacao de permissoes BLE;
-- listagem de entidades simuladas;
-- cadastro de tag por scan;
-- visualizacao de fingerprints;
-- deteccao de presenca;
-- painel de diagnostico.
+O demo usa um scanner BLE mockado e um adapter em memoria. Assim, o fluxo pode ser avaliado sem backend, sem tag fisica e sem permissoes nativas.
 
-O app sera criado em uma fase posterior usando React Native, apos a fundacao do pacote SDK.
+## Fluxos
+
+- verificar permissao BLE mockada;
+- iniciar/parar scanner;
+- listar tags proximas;
+- selecionar entidade;
+- cadastrar tag;
+- detectar entidade atual;
+- visualizar confianca e campos usados no match.
+
+## Comandos
+
+```bash
+npm run demo:typecheck
+```
+
+Os comandos Android/iOS serao adicionados quando o projeto nativo do exemplo for gerado.
 

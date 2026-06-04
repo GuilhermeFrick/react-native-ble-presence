@@ -1,0 +1,17 @@
+{
+  "name": "@guilhermefrick/ble-presence-demo-app",
+  "version": "0.1.0",
+  "private": true,
+  "main": "index.js",
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@guilhermefrick/react-native-ble-presence": "file:../../packages/react-native-ble-presence",
+    "react": "19.2.7",
+    "react-native": "0.85.3"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0"
+  }
+}

@@ -33,7 +33,7 @@ docs
 
 ```bash
 npm install
-npm run typecheck
+npm run typecheck:all
 npm test
 npm run build
 ```
@@ -84,3 +84,4 @@ O SDK tambem aceita um `permissionManager` customizado para que o app cliente co
 - Testes unitarios com Vitest.
 - Dockerfile para ambiente Android/Node.
 - CI inicial com validacao Linux e smoke iOS em macOS.
+- Demo app mockado em `examples/demo-app`.

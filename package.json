@@ -9,7 +9,9 @@
   ],
   "scripts": {
     "build": "npm run build --workspace @guilhermefrick/react-native-ble-presence",
+    "demo:typecheck": "npm run typecheck --workspace @guilhermefrick/ble-presence-demo-app",
     "typecheck": "npm run typecheck --workspace @guilhermefrick/react-native-ble-presence",
+    "typecheck:all": "npm run typecheck && npm run demo:typecheck",
     "test": "npm run test --workspace @guilhermefrick/react-native-ble-presence",
     "lint": "npm run lint --workspace @guilhermefrick/react-native-ble-presence"
   },
