@@ -74,6 +74,8 @@ export type MatchingStrategy = {
 
 export type BleScannerStatus = 'idle' | 'scanning' | 'stopped' | 'error';
 
+export type BlePermissionStatus = 'granted' | 'denied' | 'blocked' | 'unavailable' | 'requires_system_action' | 'unknown';
+
 export type BleScannerOptions = {
   minRssi?: number;
   allowDuplicates?: boolean;
@@ -85,6 +87,11 @@ export type BleScanner = {
   startScan(options?: BleScannerOptions): Promise<void>;
   stopScan(): Promise<void>;
   subscribe(listener: BleScannerListener): () => void;
+};
+
+export type BlePermissionManager = {
+  checkPermissions(): Promise<BlePermissionStatus>;
+  requestPermissions(): Promise<BlePermissionStatus>;
 };
 
 export type SaveTagRegistrationInput<TEntityId extends string = string> = {
@@ -119,10 +126,10 @@ export type TagRegistrationResult<TEntityId extends string = string> = {
 };
 
 export type BlePresenceState<TEntityId extends string = string> = {
+  permissionStatus: BlePermissionStatus;
   scannerStatus: BleScannerStatus;
   nearbyTags: BleScanResult[];
   registeredTags: RegisteredTag<TEntityId>[];
   currentMatch: PresenceMatch<TEntityId> | null;
   error: Error | null;
 };
-

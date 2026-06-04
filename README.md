@@ -44,6 +44,7 @@ npm run build
 import {
   BlePresenceProvider,
   createBlePlxScanner,
+  useBlePermissions,
   usePresenceDetection,
   useTagRegistration,
 } from '@guilhermefrick/react-native-ble-presence';
@@ -59,6 +60,7 @@ function App() {
 }
 
 function PresenceFeature() {
+  const { permissionStatus, requestPermissions } = useBlePermissions();
   const { currentMatch, refreshRegisteredTags } = usePresenceDetection();
   const { nearbyTags, registerTag } = useTagRegistration();
 
@@ -67,6 +69,8 @@ function PresenceFeature() {
 }
 ```
 
+O SDK tambem aceita um `permissionManager` customizado para que o app cliente controle a estrategia de permissoes por plataforma.
+
 ## Status tecnico
 
 - Monorepo npm workspaces.
@@ -74,6 +78,7 @@ function PresenceFeature() {
 - Core inicial com fingerprint e matching.
 - Provider e hooks headless iniciais.
 - Contratos de adapter para backend/storage do cliente.
+- Contrato de permissoes BLE injetavel.
 - Scanner BLE abstrato e implementacao inicial com `react-native-ble-plx`.
 - Normalizacao testada de resultados BLE Android/iOS.
 - Testes unitarios com Vitest.

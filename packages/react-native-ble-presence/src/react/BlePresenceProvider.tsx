@@ -4,17 +4,21 @@ import type {
   BlePresenceAdapter,
   BlePresenceConfig,
   BlePresenceState,
+  BlePermissionManager,
+  BlePermissionStatus,
   BleScanResult,
   BleScanner,
   BleScannerOptions,
   RegisteredTag,
 } from '../types';
+import { createNoopBlePermissionManager } from '../native/permissions/noopBlePermissionManager';
 import { createNoopBleScanner } from '../native/scanner/noopBleScanner';
 import { BlePresenceContext, type BlePresenceContextValue } from './BlePresenceContext';
 
 export type BlePresenceProviderProps<TEntityId extends string = string> = PropsWithChildren<{
   adapter: BlePresenceAdapter<TEntityId>;
   config?: BlePresenceConfig;
+  permissionManager?: BlePermissionManager;
   scanner?: BleScanner;
 }>;
 
@@ -22,10 +26,16 @@ export function BlePresenceProvider<TEntityId extends string = string>({
   adapter,
   children,
   config = {},
+  permissionManager,
   scanner,
 }: BlePresenceProviderProps<TEntityId>) {
   const resolvedScanner = useMemo(() => scanner ?? createNoopBleScanner(), [scanner]);
+  const resolvedPermissionManager = useMemo(
+    () => permissionManager ?? createNoopBlePermissionManager(),
+    [permissionManager],
+  );
   const [state, setState] = useState<BlePresenceState<TEntityId>>({
+    permissionStatus: 'unknown',
     scannerStatus: 'idle',
     nearbyTags: [],
     registeredTags: [],
@@ -48,6 +58,22 @@ export function BlePresenceProvider<TEntityId extends string = string>({
   );
 
   useEffect(() => resolvedScanner.subscribe(pushScanResult), [pushScanResult, resolvedScanner]);
+
+  const setPermissionStatus = useCallback((permissionStatus: BlePermissionStatus) => {
+    setState((current) => ({ ...current, permissionStatus }));
+  }, []);
+
+  const checkPermissions = useCallback(async () => {
+    const permissionStatus = await resolvedPermissionManager.checkPermissions();
+    setPermissionStatus(permissionStatus);
+    return permissionStatus;
+  }, [resolvedPermissionManager, setPermissionStatus]);
+
+  const requestPermissions = useCallback(async () => {
+    const permissionStatus = await resolvedPermissionManager.requestPermissions();
+    setPermissionStatus(permissionStatus);
+    return permissionStatus;
+  }, [resolvedPermissionManager, setPermissionStatus]);
 
   const startScan = useCallback(
     async (options?: BleScannerOptions) => {
@@ -88,22 +114,30 @@ export function BlePresenceProvider<TEntityId extends string = string>({
     () => ({
       adapter,
       config,
+      permissionManager: resolvedPermissionManager,
       scanner: resolvedScanner,
       state,
+      checkPermissions,
+      requestPermissions,
       startScan,
       stopScan,
       clearNearbyTags,
       setRegisteredTags,
       setCurrentMatch,
+      setPermissionStatus,
       pushScanResult,
     }),
     [
       adapter,
+      checkPermissions,
       clearNearbyTags,
       config,
+      requestPermissions,
       pushScanResult,
+      resolvedPermissionManager,
       resolvedScanner,
       setCurrentMatch,
+      setPermissionStatus,
       setRegisteredTags,
       startScan,
       state,
@@ -126,4 +160,3 @@ function upsertScanResult(scanResults: BleScanResult[], nextScanResult: BleScanR
 function toError(error: unknown): Error {
   return error instanceof Error ? error : new Error(String(error));
 }
-
