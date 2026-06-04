@@ -4,6 +4,9 @@
   "private": true,
   "main": "index.js",
   "scripts": {
+    "android": "react-native run-android",
+    "ios": "react-native run-ios",
+    "start": "react-native start",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

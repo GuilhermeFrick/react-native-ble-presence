@@ -8,8 +8,14 @@ coverage/
 *.log
 android/.gradle/
 android/build/
+**/android/.gradle/
+**/android/.kotlin/
+**/android/build/
+**/android/app/.cxx/
+**/android/app/build/
 ios/Pods/
 ios/build/
+**/ios/Pods/
+**/ios/build/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
-

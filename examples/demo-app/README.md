@@ -20,7 +20,15 @@ O demo usa um scanner BLE mockado e um adapter em memoria. Assim, o fluxo pode s
 
 ```bash
 npm run demo:typecheck
+npm run demo:android:docker
 ```
 
-Os comandos Android/iOS serao adicionados quando o projeto nativo do exemplo for gerado.
+O comando Android via Docker gera o APK debug em:
 
+```txt
+examples/demo-app/android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+Para rodar diretamente no host, e necessario ter Android SDK configurado com `ANDROID_HOME` ou `android/local.properties`.
+
+O build iOS requer macOS com Xcode e CocoaPods.

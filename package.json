@@ -10,12 +10,18 @@
   "scripts": {
     "build": "npm run build --workspace @guilhermefrick/react-native-ble-presence",
     "demo:typecheck": "npm run typecheck --workspace @guilhermefrick/ble-presence-demo-app",
+    "demo:android:docker": "docker run --rm -v \"$PWD:/workspace\" -w /workspace/examples/demo-app/android react-native-ble-presence ./gradlew assembleDebug",
     "typecheck": "npm run typecheck --workspace @guilhermefrick/react-native-ble-presence",
     "typecheck:all": "npm run typecheck && npm run demo:typecheck",
     "test": "npm run test --workspace @guilhermefrick/react-native-ble-presence",
     "lint": "npm run lint --workspace @guilhermefrick/react-native-ble-presence"
   },
   "devDependencies": {
+    "@react-native-community/cli": "^20.0.2",
+    "@react-native-community/cli-platform-android": "^20.1.3",
+    "@react-native-community/cli-platform-ios": "^20.1.3",
+    "@react-native/babel-preset": "0.85.3",
+    "@react-native/metro-config": "0.85.3",
     "@types/node": "^24.0.0",
     "typescript": "^5.8.0",
     "vitest": "^4.1.8"
