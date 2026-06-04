@@ -1,4 +1,6 @@
 import type { BleFingerprint, BleScanResult, FingerprintQuality } from '../../types';
+import { parseIBeacon } from '../beacon/parseIBeacon';
+import { normalizeAdvertisementData } from '../encoding/normalizeAdvertisementData';
 
 export type BuildFingerprintOptions = {
   id?: string;
@@ -10,16 +12,17 @@ export function buildFingerprint(
   options: BuildFingerprintOptions = {},
 ): BleFingerprint {
   const serviceUuids = normalizeServiceUuids(scanResult.serviceUuids);
+  const manufacturerData = normalizeAdvertisementData(scanResult.manufacturerData);
   const fingerprint: BleFingerprint = {
     id: options.id ?? scanResult.id,
     platform: scanResult.platform,
     localName: scanResult.localName,
     macAddress: scanResult.macAddress,
     peripheralId: scanResult.peripheralId,
-    manufacturerData: normalizeHex(scanResult.manufacturerData),
+    manufacturerData,
     serviceData: normalizeServiceData(scanResult.serviceData),
     serviceUuids,
-    beacon: scanResult.beacon,
+    beacon: scanResult.beacon ?? parseIBeacon(manufacturerData),
     quality: 'none',
     createdAt: options.createdAt ?? new Date().toISOString(),
   };
@@ -60,18 +63,14 @@ function normalizeServiceData(serviceData: Record<string, string> | undefined): 
 
   const normalizedEntries: Array<[string, string]> = Object.entries(serviceData).map(([key, value]) => [
     key.toLowerCase(),
-    normalizeRequiredHex(value),
+    normalizeRequiredAdvertisementData(value),
   ]);
 
   return Object.fromEntries(normalizedEntries.sort(([left], [right]) => left.localeCompare(right)));
 }
 
-function normalizeHex(value: string | undefined): string | undefined {
-  return value?.replace(/[^a-fA-F0-9]/g, '').toLowerCase();
-}
-
-function normalizeRequiredHex(value: string): string {
-  return value.replace(/[^a-fA-F0-9]/g, '').toLowerCase();
+function normalizeRequiredAdvertisementData(value: string): string {
+  return normalizeAdvertisementData(value) ?? value;
 }
 
 function hasServiceData(serviceData: Record<string, string> | undefined): boolean {
