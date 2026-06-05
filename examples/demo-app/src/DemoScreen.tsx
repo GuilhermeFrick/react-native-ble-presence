@@ -17,7 +17,10 @@ import {
 } from '@guilhermefrick/react-native-ble-presence';
 import { demoEntities } from './data/entities';
 
+type DemoView = 'registration' | 'detection';
+
 export function DemoScreen() {
+  const [activeView, setActiveView] = useState<DemoView>('registration');
   const [selectedEntityId, setSelectedEntityId] = useState(demoEntities[0]?.id ?? '');
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [lastRegistrationMessage, setLastRegistrationMessage] = useState<string | null>(null);
@@ -32,6 +35,9 @@ export function DemoScreen() {
     [nearbyTags, selectedTagId],
   );
   const selectedEntity = demoEntities.find((entity) => entity.id === selectedEntityId);
+  const currentMatchEntity = currentMatch
+    ? demoEntities.find((entity) => entity.id === currentMatch.entityId)
+    : null;
 
   useEffect(() => {
     void checkPermissions();
@@ -71,7 +77,7 @@ export function DemoScreen() {
       <ScrollView contentContainerStyle={styles.container}>
         <View style={styles.header}>
           <Text style={styles.title}>BLE Presence Demo</Text>
-          <Text style={styles.subtitle}>SDK integrado com scanner e backend mockados</Text>
+          <Text style={styles.subtitle}>SDK integrado com scanner BLE real e cadastro local</Text>
         </View>
 
         <View style={styles.toolbar}>
@@ -84,78 +90,145 @@ export function DemoScreen() {
           <ActionButton label={isScanning ? 'Parar scan' : 'Iniciar scan'} onPress={handleToggleScan} />
         </View>
 
-        <Section title="Entidade">
-          <View style={styles.entityGrid}>
-            {demoEntities.map((entity) => (
-              <TouchableOpacity
-                key={entity.id}
-                accessibilityRole="button"
-                onPress={() => setSelectedEntityId(entity.id)}
-                style={[styles.entityCard, selectedEntityId === entity.id && styles.selectedCard]}
-              >
-                <Text style={styles.entityTitle}>{entity.label}</Text>
-                <Text style={styles.entityDescription}>{entity.description}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Section>
-
-        <Section title="Tags proximas">
-          {nearbyTags.length === 0 ? (
-            <EmptyState text="Nenhuma tag BLE detectada" />
-          ) : (
-            nearbyTags.map((tag) => (
-              <TagRow
-                key={tag.id}
-                tag={tag}
-                selected={selectedTag?.id === tag.id}
-                onPress={() => setSelectedTagId(tag.id)}
-              />
-            ))
-          )}
-        </Section>
-
-        <View style={styles.actions}>
-          <ActionButton
-            disabled={!selectedTag || !selectedEntity}
-            label="Cadastrar tag"
-            onPress={handleRegisterSelectedTag}
+        <View style={styles.tabs}>
+          <TabButton
+            active={activeView === 'registration'}
+            label="Cadastro"
+            onPress={() => setActiveView('registration')}
+          />
+          <TabButton
+            active={activeView === 'detection'}
+            label="Deteccao"
+            onPress={() => setActiveView('detection')}
           />
         </View>
 
-        {lastRegistrationMessage ? (
-          <View style={styles.notice}>
-            <Text style={styles.noticeText}>Cadastro: {lastRegistrationMessage}</Text>
-          </View>
-        ) : null}
-
-        <Section title="Deteccao">
-          {currentMatch ? (
-            <View style={styles.matchBox}>
-              <Text style={styles.matchTitle}>{currentMatch.entityId}</Text>
-              <Text style={styles.matchText}>Confianca: {currentMatch.confidence}</Text>
-              <Text style={styles.matchText}>Score: {currentMatch.score}</Text>
-              <Text style={styles.matchText}>Campos: {currentMatch.matchedBy.join(', ')}</Text>
-            </View>
-          ) : (
-            <EmptyState text="Nenhuma entidade identificada" />
-          )}
-        </Section>
-
-        <Section title="Tags cadastradas">
-          {registeredTags.length === 0 ? (
-            <EmptyState text="Nenhum cadastro local" />
-          ) : (
-            registeredTags.map((registeredTag) => (
-              <View key={registeredTag.entityId} style={styles.registeredRow}>
-                <Text style={styles.registeredTitle}>{registeredTag.entityId}</Text>
-                <Text style={styles.registeredText}>{registeredTag.fingerprint.quality}</Text>
+        {activeView === 'registration' ? (
+          <View style={styles.screen}>
+            <Section title="Entidade">
+              <View style={styles.entityGrid}>
+                {demoEntities.map((entity) => (
+                  <TouchableOpacity
+                    key={entity.id}
+                    accessibilityRole="button"
+                    onPress={() => setSelectedEntityId(entity.id)}
+                    style={[styles.entityCard, selectedEntityId === entity.id && styles.selectedCard]}
+                  >
+                    <Text style={styles.entityTitle}>{entity.label}</Text>
+                    <Text style={styles.entityDescription}>{entity.description}</Text>
+                  </TouchableOpacity>
+                ))}
               </View>
-            ))
-          )}
-        </Section>
+            </Section>
+
+            <Section title="Tags proximas">
+              {nearbyTags.length === 0 ? (
+                <EmptyState text="Nenhuma tag BLE detectada" />
+              ) : (
+                nearbyTags.map((tag) => (
+                  <TagRow
+                    key={tag.id}
+                    tag={tag}
+                    selected={selectedTag?.id === tag.id}
+                    onPress={() => setSelectedTagId(tag.id)}
+                  />
+                ))
+              )}
+            </Section>
+
+            <View style={styles.actions}>
+              <ActionButton
+                disabled={!selectedTag || !selectedEntity}
+                label="Cadastrar tag"
+                onPress={handleRegisterSelectedTag}
+              />
+            </View>
+
+            {lastRegistrationMessage ? (
+              <View style={styles.notice}>
+                <Text style={styles.noticeText}>Cadastro salvo: {lastRegistrationMessage}</Text>
+              </View>
+            ) : null}
+
+            <RegisteredTagsSection registeredTags={registeredTags} />
+          </View>
+        ) : (
+          <View style={styles.screen}>
+            <Section title="Deteccao">
+              {currentMatch ? (
+                <View style={styles.matchBox}>
+                  <Text style={styles.matchTitle}>{currentMatchEntity?.label ?? currentMatch.entityId}</Text>
+                  <Text style={styles.matchText}>Entidade: {currentMatch.entityId}</Text>
+                  <Text style={styles.matchText}>Confianca: {currentMatch.confidence}</Text>
+                  <Text style={styles.matchText}>Score: {currentMatch.score}</Text>
+                  <Text style={styles.matchText}>Campos: {currentMatch.matchedBy.join(', ')}</Text>
+                </View>
+              ) : (
+                <EmptyState text="Nenhuma entidade identificada" />
+              )}
+            </Section>
+
+            <Section title="Tags proximas">
+              {nearbyTags.length === 0 ? (
+                <EmptyState text="Inicie o scan para detectar tags BLE" />
+              ) : (
+                nearbyTags.map((tag) => <TagRow key={tag.id} tag={tag} selected={false} />)
+              )}
+            </Section>
+
+            <RegisteredTagsSection registeredTags={registeredTags} />
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function TabButton({
+  active,
+  label,
+  onPress,
+}: {
+  active: boolean;
+  label: string;
+  onPress(): void;
+}) {
+  return (
+    <TouchableOpacity
+      accessibilityRole="button"
+      onPress={onPress}
+      style={[styles.tabButton, active && styles.activeTabButton]}
+    >
+      <Text style={[styles.tabText, active && styles.activeTabText]}>{label}</Text>
+    </TouchableOpacity>
+  );
+}
+
+function RegisteredTagsSection({
+  registeredTags,
+}: {
+  registeredTags: ReturnType<typeof usePresenceDetection>['registeredTags'];
+}) {
+  return (
+    <Section title="Tags cadastradas">
+      {registeredTags.length === 0 ? (
+        <EmptyState text="Nenhum cadastro local" />
+      ) : (
+        registeredTags.map((registeredTag) => {
+          const entity = demoEntities.find((item) => item.id === registeredTag.entityId);
+
+          return (
+            <View key={registeredTag.entityId} style={styles.registeredRow}>
+              <View style={styles.registeredContent}>
+                <Text style={styles.registeredTitle}>{entity?.label ?? registeredTag.entityId}</Text>
+                <Text style={styles.registeredId}>{registeredTag.entityId}</Text>
+              </View>
+              <Text style={styles.registeredText}>{registeredTag.fingerprint.quality}</Text>
+            </View>
+          );
+        })
+      )}
+    </Section>
   );
 }
 
@@ -209,13 +282,14 @@ function TagRow({
   selected,
   tag,
 }: {
-  onPress(): void;
+  onPress?(): void;
   selected: boolean;
   tag: BleScanResult;
 }) {
   return (
     <TouchableOpacity
       accessibilityRole="button"
+      disabled={!onPress}
       onPress={onPress}
       style={[styles.tagRow, selected && styles.selectedCard]}
     >
@@ -297,6 +371,35 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
+  },
+  tabs: {
+    backgroundColor: colors.secondary,
+    borderRadius: 8,
+    flexDirection: 'row',
+    gap: 4,
+    padding: 4,
+  },
+  tabButton: {
+    alignItems: 'center',
+    borderRadius: 6,
+    flex: 1,
+    minHeight: 40,
+    justifyContent: 'center',
+    paddingHorizontal: 12,
+  },
+  activeTabButton: {
+    backgroundColor: colors.panel,
+  },
+  tabText: {
+    color: colors.muted,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  activeTabText: {
+    color: colors.ink,
+  },
+  screen: {
+    gap: 16,
   },
   button: {
     alignItems: 'center',
@@ -424,10 +527,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 12,
   },
+  registeredContent: {
+    flex: 1,
+    paddingRight: 12,
+  },
   registeredTitle: {
     color: colors.ink,
     fontSize: 14,
     fontWeight: '700',
+  },
+  registeredId: {
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 2,
   },
   registeredText: {
     color: colors.muted,

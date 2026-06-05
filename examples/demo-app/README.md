@@ -4,16 +4,17 @@ Aplicativo React Native de exemplo para demonstrar a integracao com o SDK `@guil
 
 ## Objetivo
 
-O demo usa um scanner BLE mockado e um adapter em memoria. Assim, o fluxo pode ser avaliado sem backend, sem tag fisica e sem permissoes nativas.
+O demo usa o scanner BLE real via `react-native-ble-plx` e um adapter local com `AsyncStorage`.
+Assim, o fluxo pode ser avaliado no aparelho sem backend, mantendo os cadastros salvos entre reinicios do app.
 
 ## Fluxos
 
-- verificar permissao BLE mockada;
+- verificar permissao BLE;
 - iniciar/parar scanner;
 - listar tags proximas;
-- selecionar entidade;
-- cadastrar tag;
-- detectar entidade atual;
+- selecionar entidade na tela de cadastro;
+- cadastrar tag no armazenamento local;
+- detectar entidade atual na tela de deteccao;
 - visualizar confianca e campos usados no match.
 
 ## Comandos

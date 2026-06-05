@@ -5,10 +5,10 @@ import {
   createReactNativeBlePermissionManager,
 } from '@guilhermefrick/react-native-ble-presence';
 import { DemoScreen } from './src/DemoScreen';
-import { createMemoryBlePresenceAdapter } from './src/mocks/createMemoryBlePresenceAdapter';
+import { createAsyncStorageBlePresenceAdapter } from './src/storage/createAsyncStorageBlePresenceAdapter';
 
 export default function App() {
-  const adapter = useMemo(() => createMemoryBlePresenceAdapter(), []);
+  const adapter = useMemo(() => createAsyncStorageBlePresenceAdapter(), []);
   const permissionManager = useMemo(() => createReactNativeBlePermissionManager(), []);
   const scanner = useMemo(() => createBlePlxScanner(), []);
 
