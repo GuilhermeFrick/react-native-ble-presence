@@ -4,6 +4,7 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View,
@@ -17,7 +18,8 @@ import {
 } from '@guilhermefrick/react-native-ble-presence';
 import { demoEntities } from './data/entities';
 import { useGpsSpeed } from './location/useGpsSpeed';
-import { defaultPresenceRules, usePresenceRules } from './rules/usePresenceRules';
+import { usePresenceRules, type PresenceRulesConfig } from './rules/usePresenceRules';
+import { usePresenceRuleSettings } from './rules/usePresenceRuleSettings';
 
 type DemoView = 'registration' | 'detection';
 
@@ -32,11 +34,12 @@ export function DemoScreen() {
   const { currentMatch, refreshRegisteredTags, registeredTags } = usePresenceDetection();
   const { registerTag } = useTagRegistration();
   const gpsSpeed = useGpsSpeed();
+  const presenceRuleSettings = usePresenceRuleSettings();
   const latestTag = nearbyTags[0] ?? null;
   const ruledPresence = usePresenceRules({
     latestTag,
     rawMatch: currentMatch,
-    rules: defaultPresenceRules,
+    rules: presenceRuleSettings.rules,
     speedKmh: gpsSpeed.speedKmh,
   });
 
@@ -211,6 +214,13 @@ export function DemoScreen() {
               </View>
             </Section>
 
+            <RuleSettingsSection
+              isLoaded={presenceRuleSettings.isLoaded}
+              onReset={presenceRuleSettings.resetRules}
+              onUpdate={presenceRuleSettings.updateRules}
+              rules={presenceRuleSettings.rules}
+            />
+
             <Section title="Match BLE bruto">
               {currentMatch ? (
                 <View style={styles.matchBox}>
@@ -237,6 +247,109 @@ export function DemoScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function RuleSettingsSection({
+  isLoaded,
+  onReset,
+  onUpdate,
+  rules,
+}: {
+  isLoaded: boolean;
+  onReset(): void;
+  onUpdate(patch: Partial<PresenceRulesConfig>): void;
+  rules: PresenceRulesConfig;
+}) {
+  return (
+    <Section title="Configuracao de regras">
+      <View style={styles.ruleBox}>
+        <StepperRule
+          label="Deteccoes para entrar"
+          onChange={(value) => onUpdate({ minDetectionsToEnter: value })}
+          step={1}
+          suffix="x"
+          value={rules.minDetectionsToEnter}
+        />
+        <StepperRule
+          label="Janela de entrada"
+          onChange={(value) => onUpdate({ enterWindowMs: value * 1000 })}
+          step={5}
+          suffix="s"
+          value={Math.round(rules.enterWindowMs / 1000)}
+        />
+        <StepperRule
+          label="Perder apos"
+          onChange={(value) => onUpdate({ lostAfterMs: value * 1000 })}
+          step={5}
+          suffix="s"
+          value={Math.round(rules.lostAfterMs / 1000)}
+        />
+        <StepperRule
+          label="RSSI minimo"
+          onChange={(value) => onUpdate({ minRssi: value })}
+          step={5}
+          suffix="dBm"
+          value={rules.minRssi}
+        />
+        <StepperRule
+          label="Velocidade minima"
+          onChange={(value) => onUpdate({ minSpeedToConfirmKmh: value })}
+          step={1}
+          suffix="km/h"
+          value={rules.minSpeedToConfirmKmh}
+        />
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleText}>
+            <Text style={styles.settingLabel}>Exigir movimento</Text>
+            <Text style={styles.settingHint}>Confirma somente depois de atingir velocidade minima</Text>
+          </View>
+          <Switch
+            onValueChange={(value) => onUpdate({ requireMovementToEnter: value })}
+            value={rules.requireMovementToEnter}
+          />
+        </View>
+        <View style={styles.settingFooter}>
+          <Text style={styles.settingSaved}>{isLoaded ? 'Salvo localmente' : 'Carregando regras'}</Text>
+          <ActionButton label="Restaurar padrao" onPress={onReset} variant="secondary" />
+        </View>
+      </View>
+    </Section>
+  );
+}
+
+function StepperRule({
+  label,
+  onChange,
+  step,
+  suffix,
+  value,
+}: {
+  label: string;
+  onChange(value: number): void;
+  step: number;
+  suffix: string;
+  value: number;
+}) {
+  return (
+    <View style={styles.stepperRow}>
+      <Text style={styles.settingLabel}>{label}</Text>
+      <View style={styles.stepperControls}>
+        <IconButton label="-" onPress={() => onChange(value - step)} />
+        <Text style={styles.stepperValue}>
+          {value} {suffix}
+        </Text>
+        <IconButton label="+" onPress={() => onChange(value + step)} />
+      </View>
+    </View>
+  );
+}
+
+function IconButton({ label, onPress }: { label: string; onPress(): void }) {
+  return (
+    <TouchableOpacity accessibilityRole="button" onPress={onPress} style={styles.iconButton}>
+      <Text style={styles.iconButtonText}>{label}</Text>
+    </TouchableOpacity>
   );
 }
 
@@ -616,6 +729,78 @@ const styles = StyleSheet.create({
   errorText: {
     color: '#a33a2b',
     fontSize: 13,
+    fontWeight: '700',
+  },
+  stepperRow: {
+    alignItems: 'center',
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 52,
+    paddingVertical: 8,
+  },
+  settingLabel: {
+    color: colors.ink,
+    flex: 1,
+    fontSize: 14,
+    fontWeight: '700',
+    paddingRight: 12,
+  },
+  settingHint: {
+    color: colors.muted,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  stepperControls: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 8,
+  },
+  stepperValue: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '700',
+    minWidth: 76,
+    textAlign: 'center',
+  },
+  iconButton: {
+    alignItems: 'center',
+    backgroundColor: colors.secondary,
+    borderRadius: 6,
+    height: 36,
+    justifyContent: 'center',
+    width: 36,
+  },
+  iconButtonText: {
+    color: colors.ink,
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  toggleRow: {
+    alignItems: 'center',
+    borderBottomColor: colors.border,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 58,
+    paddingVertical: 8,
+  },
+  toggleText: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  settingFooter: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'space-between',
+    paddingTop: 8,
+  },
+  settingSaved: {
+    color: colors.muted,
+    fontSize: 12,
     fontWeight: '700',
   },
   registeredRow: {
