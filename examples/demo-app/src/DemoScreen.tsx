@@ -265,50 +265,50 @@ function RuleSettingsSection({
     <Section title="Configuracao de regras">
       <View style={styles.ruleBox}>
         <StepperRule
+          enabled={rules.useMinDetectionsToEnter}
           label="Deteccoes para entrar"
+          onEnabledChange={(value) => onUpdate({ useMinDetectionsToEnter: value })}
           onChange={(value) => onUpdate({ minDetectionsToEnter: value })}
           step={1}
           suffix="x"
           value={rules.minDetectionsToEnter}
         />
         <StepperRule
+          enabled={rules.useEnterWindow}
           label="Janela de entrada"
+          onEnabledChange={(value) => onUpdate({ useEnterWindow: value })}
           onChange={(value) => onUpdate({ enterWindowMs: value * 1000 })}
           step={5}
           suffix="s"
           value={Math.round(rules.enterWindowMs / 1000)}
         />
         <StepperRule
+          enabled={rules.useLostAfter}
           label="Perder apos"
+          onEnabledChange={(value) => onUpdate({ useLostAfter: value })}
           onChange={(value) => onUpdate({ lostAfterMs: value * 1000 })}
           step={5}
           suffix="s"
           value={Math.round(rules.lostAfterMs / 1000)}
         />
         <StepperRule
+          enabled={rules.useMinRssi}
           label="RSSI minimo"
+          onEnabledChange={(value) => onUpdate({ useMinRssi: value })}
           onChange={(value) => onUpdate({ minRssi: value })}
           step={5}
           suffix="dBm"
           value={rules.minRssi}
         />
         <StepperRule
+          enabled={rules.requireMovementToEnter}
           label="Velocidade minima"
+          onEnabledChange={(value) => onUpdate({ requireMovementToEnter: value })}
           onChange={(value) => onUpdate({ minSpeedToConfirmKmh: value })}
           step={1}
           suffix="km/h"
           value={rules.minSpeedToConfirmKmh}
         />
-        <View style={styles.toggleRow}>
-          <View style={styles.toggleText}>
-            <Text style={styles.settingLabel}>Exigir movimento</Text>
-            <Text style={styles.settingHint}>Confirma somente depois de atingir velocidade minima</Text>
-          </View>
-          <Switch
-            onValueChange={(value) => onUpdate({ requireMovementToEnter: value })}
-            value={rules.requireMovementToEnter}
-          />
-        </View>
         <View style={styles.settingFooter}>
           <Text style={styles.settingSaved}>{isLoaded ? 'Salvo localmente' : 'Carregando regras'}</Text>
           <ActionButton label="Restaurar padrao" onPress={onReset} variant="secondary" />
@@ -319,35 +319,48 @@ function RuleSettingsSection({
 }
 
 function StepperRule({
+  enabled,
   label,
   onChange,
+  onEnabledChange,
   step,
   suffix,
   value,
 }: {
+  enabled: boolean;
   label: string;
   onChange(value: number): void;
+  onEnabledChange(value: boolean): void;
   step: number;
   suffix: string;
   value: number;
 }) {
   return (
-    <View style={styles.stepperRow}>
-      <Text style={styles.settingLabel}>{label}</Text>
+    <View style={[styles.stepperRow, !enabled && styles.disabledSettingRow]}>
+      <View style={styles.settingText}>
+        <Text style={styles.settingLabel}>{label}</Text>
+        <Text style={styles.settingHint}>{enabled ? 'Ativo na decisao' : 'Ignorado pela regra'}</Text>
+      </View>
       <View style={styles.stepperControls}>
-        <IconButton label="-" onPress={() => onChange(value - step)} />
+        <Switch onValueChange={onEnabledChange} value={enabled} />
+        <IconButton disabled={!enabled} label="-" onPress={() => onChange(value - step)} />
         <Text style={styles.stepperValue}>
           {value} {suffix}
         </Text>
-        <IconButton label="+" onPress={() => onChange(value + step)} />
+        <IconButton disabled={!enabled} label="+" onPress={() => onChange(value + step)} />
       </View>
     </View>
   );
 }
 
-function IconButton({ label, onPress }: { label: string; onPress(): void }) {
+function IconButton({ disabled, label, onPress }: { disabled?: boolean; label: string; onPress(): void }) {
   return (
-    <TouchableOpacity accessibilityRole="button" onPress={onPress} style={styles.iconButton}>
+    <TouchableOpacity
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      style={[styles.iconButton, disabled && styles.disabledButton]}
+    >
       <Text style={styles.iconButtonText}>{label}</Text>
     </TouchableOpacity>
   );
@@ -742,15 +755,21 @@ const styles = StyleSheet.create({
   },
   settingLabel: {
     color: colors.ink,
-    flex: 1,
     fontSize: 14,
     fontWeight: '700',
+    paddingRight: 12,
+  },
+  settingText: {
+    flex: 1,
     paddingRight: 12,
   },
   settingHint: {
     color: colors.muted,
     fontSize: 12,
     marginTop: 2,
+  },
+  disabledSettingRow: {
+    opacity: 0.72,
   },
   stepperControls: {
     alignItems: 'center',

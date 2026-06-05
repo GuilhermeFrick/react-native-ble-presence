@@ -83,6 +83,10 @@ function normalizeRules(rules: PresenceRulesConfig): PresenceRulesConfig {
     minRssi: clamp(Math.round(rules.minRssi), -100, -40),
     minSpeedToConfirmKmh: clamp(Math.round(rules.minSpeedToConfirmKmh), 0, 120),
     requireMovementToEnter: Boolean(rules.requireMovementToEnter),
+    useEnterWindow: Boolean(rules.useEnterWindow),
+    useLostAfter: Boolean(rules.useLostAfter),
+    useMinDetectionsToEnter: Boolean(rules.useMinDetectionsToEnter),
+    useMinRssi: Boolean(rules.useMinRssi),
   };
 }
 

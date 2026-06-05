@@ -8,6 +8,10 @@ export type PresenceRulesConfig = {
   minRssi: number;
   minSpeedToConfirmKmh: number;
   requireMovementToEnter: boolean;
+  useEnterWindow: boolean;
+  useLostAfter: boolean;
+  useMinDetectionsToEnter: boolean;
+  useMinRssi: boolean;
 };
 
 export type RulePresenceStatus = 'idle' | 'candidate' | 'confirmed' | 'lost_pending';
@@ -35,6 +39,10 @@ export const defaultPresenceRules: PresenceRulesConfig = {
   minRssi: -85,
   minSpeedToConfirmKmh: 8,
   requireMovementToEnter: true,
+  useEnterWindow: true,
+  useLostAfter: true,
+  useMinDetectionsToEnter: true,
+  useMinRssi: true,
 };
 
 export function usePresenceRules<TEntityId extends string = string>({
@@ -65,17 +73,15 @@ export function usePresenceRules<TEntityId extends string = string>({
 
   useEffect(() => {
     const hasNewAdvertisement = Boolean(latestSeenAt && latestSeenAt !== lastProcessedSeenAtRef.current);
-    const passesRssi = latestTag?.rssi == null || latestTag.rssi >= rules.minRssi;
+    const passesRssi = !rules.useMinRssi || latestTag?.rssi == null || latestTag.rssi >= rules.minRssi;
 
     if (rawMatch && latestTag && passesRssi && hasNewAdvertisement) {
       lastProcessedSeenAtRef.current = latestTag.seenAt;
       const candidate = buildNextCandidate(candidateRef.current, rawMatch.entityId, nowMs, rules);
       candidateRef.current = candidate;
 
-      const hasEnoughDetections = candidate.count >= rules.minDetectionsToEnter;
-      const hasMovement =
-        !rules.requireMovementToEnter ||
-        (typeof speedKmh === 'number' && speedKmh >= rules.minSpeedToConfirmKmh);
+      const hasEnoughDetections = passesMinDetections(candidate.count, rules);
+      const hasMovement = passesMovement(speedKmh, rules);
 
       if (hasEnoughDetections && hasMovement) {
         confirmedRef.current = rawMatch;
@@ -107,11 +113,9 @@ export function usePresenceRules<TEntityId extends string = string>({
     if (!confirmedMatch && candidate) {
       const candidateAgeMs = nowMs - candidate.firstSeenAtMs;
 
-      if (candidateAgeMs <= rules.enterWindowMs) {
-        const hasEnoughDetections = candidate.count >= rules.minDetectionsToEnter;
-        const hasMovement =
-          !rules.requireMovementToEnter ||
-          (typeof speedKmh === 'number' && speedKmh >= rules.minSpeedToConfirmKmh);
+      if (!rules.useEnterWindow || candidateAgeMs <= rules.enterWindowMs) {
+        const hasEnoughDetections = passesMinDetections(candidate.count, rules);
+        const hasMovement = passesMovement(speedKmh, rules);
 
         setState({
           candidateDetections: candidate.count,
@@ -130,7 +134,7 @@ export function usePresenceRules<TEntityId extends string = string>({
     if (confirmedMatch && candidateRef.current) {
       const elapsedWithoutMatchMs = nowMs - candidateRef.current.lastSeenAtMs;
 
-      if (elapsedWithoutMatchMs < rules.lostAfterMs) {
+      if (!rules.useLostAfter || elapsedWithoutMatchMs < rules.lostAfterMs) {
         setState({
           candidateDetections: candidateRef.current.count,
           candidateEntityId: candidateRef.current.entityId,
@@ -166,9 +170,14 @@ export function usePresenceRules<TEntityId extends string = string>({
 
   const ruleSummary = useMemo(
     () => [
-      `${rules.minDetectionsToEnter} deteccoes/${Math.round(rules.enterWindowMs / 1000)}s`,
-      `perde em ${Math.round(rules.lostAfterMs / 1000)}s`,
-      `RSSI >= ${rules.minRssi}`,
+      rules.useMinDetectionsToEnter
+        ? `${rules.minDetectionsToEnter} deteccoes`
+        : 'deteccoes desligadas',
+      rules.useEnterWindow
+        ? `janela ${Math.round(rules.enterWindowMs / 1000)}s`
+        : 'janela desligada',
+      rules.useLostAfter ? `perde em ${Math.round(rules.lostAfterMs / 1000)}s` : 'perda desligada',
+      rules.useMinRssi ? `RSSI >= ${rules.minRssi}` : 'RSSI desligado',
       rules.requireMovementToEnter ? `GPS >= ${rules.minSpeedToConfirmKmh} km/h` : 'GPS opcional',
     ],
     [rules],
@@ -200,7 +209,7 @@ function buildNextCandidate<TEntityId extends string>(
 ): Candidate<TEntityId> {
   const sameCandidate = currentCandidate?.entityId === entityId;
   const insideWindow = currentCandidate
-    ? nowMs - currentCandidate.firstSeenAtMs <= rules.enterWindowMs
+    ? !rules.useEnterWindow || nowMs - currentCandidate.firstSeenAtMs <= rules.enterWindowMs
     : false;
 
   if (!currentCandidate || !sameCandidate || !insideWindow) {
@@ -235,4 +244,15 @@ function buildCandidateReason(
   }
 
   return 'Regras atendidas';
+}
+
+function passesMinDetections(count: number, rules: PresenceRulesConfig): boolean {
+  return !rules.useMinDetectionsToEnter || count >= rules.minDetectionsToEnter;
+}
+
+function passesMovement(speedKmh: number | null, rules: PresenceRulesConfig): boolean {
+  return (
+    !rules.requireMovementToEnter ||
+    (typeof speedKmh === 'number' && speedKmh >= rules.minSpeedToConfirmKmh)
+  );
 }

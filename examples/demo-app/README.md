@@ -21,7 +21,7 @@ Assim, o fluxo pode ser avaliado no aparelho sem backend, mantendo os cadastros 
 ## Regras de presenca do demo
 
 O SDK entrega o match BLE bruto. O demo aplica uma camada de regra da aplicacao antes de confirmar presenca.
-Esses valores podem ser alterados na aba de deteccao e ficam salvos no armazenamento local do aparelho:
+Esses criterios podem ser ligados/desligados, ter seus valores alterados na aba de deteccao e ficam salvos no armazenamento local do aparelho:
 
 - minimo de 3 deteccoes em 10 segundos;
 - RSSI minimo de -85 dBm;
