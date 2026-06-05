@@ -11,11 +11,21 @@ Assim, o fluxo pode ser avaliado no aparelho sem backend, mantendo os cadastros 
 
 - verificar permissao BLE;
 - iniciar/parar scanner;
+- iniciar/parar GPS para obter velocidade;
 - listar tags proximas;
 - selecionar entidade na tela de cadastro;
 - cadastrar tag no armazenamento local;
-- detectar entidade atual na tela de deteccao;
+- detectar entidade atual na tela de deteccao usando regras de presenca;
 - visualizar confianca e campos usados no match.
+
+## Regras de presenca do demo
+
+O SDK entrega o match BLE bruto. O demo aplica uma camada de regra da aplicacao antes de confirmar presenca:
+
+- minimo de 3 deteccoes em 10 segundos;
+- RSSI minimo de -85 dBm;
+- velocidade GPS minima de 8 km/h para confirmar entrada;
+- timeout de 30 segundos sem novo advertisement para perder presenca.
 
 ## Comandos
 

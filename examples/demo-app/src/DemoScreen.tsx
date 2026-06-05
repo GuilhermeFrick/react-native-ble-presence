@@ -16,6 +16,8 @@ import {
   type BleScanResult,
 } from '@guilhermefrick/react-native-ble-presence';
 import { demoEntities } from './data/entities';
+import { useGpsSpeed } from './location/useGpsSpeed';
+import { defaultPresenceRules, usePresenceRules } from './rules/usePresenceRules';
 
 type DemoView = 'registration' | 'detection';
 
@@ -29,15 +31,24 @@ export function DemoScreen() {
   const { clearNearbyTags, isScanning, nearbyTags, scannerStatus, startScan, stopScan } = useBleScanner();
   const { currentMatch, refreshRegisteredTags, registeredTags } = usePresenceDetection();
   const { registerTag } = useTagRegistration();
+  const gpsSpeed = useGpsSpeed();
+  const latestTag = nearbyTags[0] ?? null;
+  const ruledPresence = usePresenceRules({
+    latestTag,
+    rawMatch: currentMatch,
+    rules: defaultPresenceRules,
+    speedKmh: gpsSpeed.speedKmh,
+  });
 
   const selectedTag = useMemo(
     () => nearbyTags.find((tag) => tag.id === selectedTagId) ?? nearbyTags[0],
     [nearbyTags, selectedTagId],
   );
   const selectedEntity = demoEntities.find((entity) => entity.id === selectedEntityId);
-  const currentMatchEntity = currentMatch
-    ? demoEntities.find((entity) => entity.id === currentMatch.entityId)
+  const confirmedMatchEntity = ruledPresence.confirmedMatch
+    ? demoEntities.find((entity) => entity.id === ruledPresence.confirmedMatch?.entityId)
     : null;
+  const rawMatchEntity = currentMatch ? demoEntities.find((entity) => entity.id === currentMatch.entityId) : null;
 
   useEffect(() => {
     void checkPermissions();
@@ -83,11 +94,18 @@ export function DemoScreen() {
         <View style={styles.toolbar}>
           <StatusPill label="Permissao" value={permissionStatus} />
           <StatusPill label="Scanner" value={scannerStatus} />
+          <StatusPill label="GPS" value={formatSpeed(gpsSpeed.speedKmh)} />
+          <StatusPill label="Presenca" value={ruledPresence.status} />
         </View>
 
         <View style={styles.actions}>
           <ActionButton label="Permitir" onPress={requestPermissions} variant="secondary" />
           <ActionButton label={isScanning ? 'Parar scan' : 'Iniciar scan'} onPress={handleToggleScan} />
+          <ActionButton
+            label={gpsSpeed.isWatching ? 'Parar GPS' : 'Iniciar GPS'}
+            onPress={gpsSpeed.isWatching ? gpsSpeed.stop : gpsSpeed.start}
+            variant="secondary"
+          />
         </View>
 
         <View style={styles.tabs}>
@@ -154,17 +172,55 @@ export function DemoScreen() {
           </View>
         ) : (
           <View style={styles.screen}>
-            <Section title="Deteccao">
+            <Section title="Presenca confirmada">
+              {ruledPresence.confirmedMatch ? (
+                <View style={styles.matchBox}>
+                  <Text style={styles.matchTitle}>
+                    {confirmedMatchEntity?.label ?? ruledPresence.confirmedMatch.entityId}
+                  </Text>
+                  <Text style={styles.matchText}>Entidade: {ruledPresence.confirmedMatch.entityId}</Text>
+                  <Text style={styles.matchText}>Confianca: {ruledPresence.confirmedMatch.confidence}</Text>
+                  <Text style={styles.matchText}>Score: {ruledPresence.confirmedMatch.score}</Text>
+                  <Text style={styles.matchText}>Campos: {ruledPresence.confirmedMatch.matchedBy.join(', ')}</Text>
+                  <Text style={styles.matchText}>Ultimo sinal: {formatDateTime(ruledPresence.lastSeenAt)}</Text>
+                </View>
+              ) : (
+                <EmptyState text="Nenhuma presenca confirmada pelas regras" />
+              )}
+            </Section>
+
+            <Section title="Regras">
+              <View style={styles.ruleBox}>
+                <Text style={styles.ruleStatus}>{ruledPresence.reason}</Text>
+                <Text style={styles.matchText}>Status: {ruledPresence.status}</Text>
+                <Text style={styles.matchText}>
+                  Candidato: {ruledPresence.candidateEntityId ?? '-'} ({ruledPresence.candidateDetections}{' '}
+                  deteccoes)
+                </Text>
+                <Text style={styles.matchText}>Velocidade: {formatSpeed(gpsSpeed.speedKmh)}</Text>
+                {gpsSpeed.errorMessage ? (
+                  <Text style={styles.errorText}>GPS: {gpsSpeed.errorMessage}</Text>
+                ) : null}
+                <View style={styles.ruleList}>
+                  {ruledPresence.ruleSummary.map((rule) => (
+                    <Text key={rule} style={styles.ruleChip}>
+                      {rule}
+                    </Text>
+                  ))}
+                </View>
+              </View>
+            </Section>
+
+            <Section title="Match BLE bruto">
               {currentMatch ? (
                 <View style={styles.matchBox}>
-                  <Text style={styles.matchTitle}>{currentMatchEntity?.label ?? currentMatch.entityId}</Text>
+                  <Text style={styles.matchTitle}>{rawMatchEntity?.label ?? currentMatch.entityId}</Text>
                   <Text style={styles.matchText}>Entidade: {currentMatch.entityId}</Text>
                   <Text style={styles.matchText}>Confianca: {currentMatch.confidence}</Text>
                   <Text style={styles.matchText}>Score: {currentMatch.score}</Text>
-                  <Text style={styles.matchText}>Campos: {currentMatch.matchedBy.join(', ')}</Text>
                 </View>
               ) : (
-                <EmptyState text="Nenhuma entidade identificada" />
+                <EmptyState text="Nenhum match BLE no momento" />
               )}
             </Section>
 
@@ -309,6 +365,18 @@ function EmptyState({ text }: { text: string }) {
       <Text style={styles.emptyText}>{text}</Text>
     </View>
   );
+}
+
+function formatSpeed(speedKmh: number | null) {
+  return typeof speedKmh === 'number' ? `${speedKmh.toFixed(1)} km/h` : '-';
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) {
+    return '-';
+  }
+
+  return new Date(value).toLocaleTimeString();
 }
 
 const colors = {
@@ -516,6 +584,39 @@ const styles = StyleSheet.create({
   matchText: {
     color: colors.muted,
     fontSize: 13,
+  },
+  ruleBox: {
+    backgroundColor: colors.panel,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 6,
+    padding: 12,
+  },
+  ruleStatus: {
+    color: colors.ink,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  ruleList: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 4,
+  },
+  ruleChip: {
+    backgroundColor: colors.secondary,
+    borderRadius: 6,
+    color: colors.ink,
+    fontSize: 12,
+    fontWeight: '700',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+  },
+  errorText: {
+    color: '#a33a2b',
+    fontSize: 13,
+    fontWeight: '700',
   },
   registeredRow: {
     alignItems: 'center',
