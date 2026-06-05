@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Modal,
   SafeAreaView,
   ScrollView,
   StatusBar,
@@ -15,17 +16,20 @@ import {
   usePresenceDetection,
   useTagRegistration,
   type BleScanResult,
+  type RegisteredTag,
 } from '@guilhermefrick/react-native-ble-presence';
 import { demoEntities } from './data/entities';
 import { useGpsSpeed } from './location/useGpsSpeed';
 import { usePresenceRules, type PresenceRulesConfig } from './rules/usePresenceRules';
 import { usePresenceRuleSettings } from './rules/usePresenceRuleSettings';
+import { deleteStoredTagRegistration } from './storage/createAsyncStorageBlePresenceAdapter';
 
 type DemoView = 'registration' | 'detection';
 
 export function DemoScreen() {
   const [activeView, setActiveView] = useState<DemoView>('registration');
   const [selectedEntityId, setSelectedEntityId] = useState(demoEntities[0]?.id ?? '');
+  const [selectedRegisteredTag, setSelectedRegisteredTag] = useState<RegisteredTag | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
   const [lastRegistrationMessage, setLastRegistrationMessage] = useState<string | null>(null);
 
@@ -83,6 +87,12 @@ export function DemoScreen() {
 
     await refreshRegisteredTags();
     setLastRegistrationMessage(`${selectedEntity.label}: ${result.quality}`);
+  }
+
+  async function handleDeleteRegisteredTag(entityId: string) {
+    await deleteStoredTagRegistration(entityId);
+    setSelectedRegisteredTag(null);
+    await refreshRegisteredTags();
   }
 
   return (
@@ -171,7 +181,10 @@ export function DemoScreen() {
               </View>
             ) : null}
 
-            <RegisteredTagsSection registeredTags={registeredTags} />
+            <RegisteredTagsSection
+              onPressTag={setSelectedRegisteredTag}
+              registeredTags={registeredTags}
+            />
           </View>
         ) : (
           <View style={styles.screen}>
@@ -242,10 +255,19 @@ export function DemoScreen() {
               )}
             </Section>
 
-            <RegisteredTagsSection registeredTags={registeredTags} />
+            <RegisteredTagsSection
+              onPressTag={setSelectedRegisteredTag}
+              registeredTags={registeredTags}
+            />
           </View>
         )}
       </ScrollView>
+
+      <RegisteredTagDetailsModal
+        onClose={() => setSelectedRegisteredTag(null)}
+        onDelete={handleDeleteRegisteredTag}
+        registeredTag={selectedRegisteredTag}
+      />
     </SafeAreaView>
   );
 }
@@ -387,9 +409,11 @@ function TabButton({
 }
 
 function RegisteredTagsSection({
+  onPressTag,
   registeredTags,
 }: {
-  registeredTags: ReturnType<typeof usePresenceDetection>['registeredTags'];
+  onPressTag(registeredTag: RegisteredTag): void;
+  registeredTags: RegisteredTag[];
 }) {
   return (
     <Section title="Tags cadastradas">
@@ -400,17 +424,110 @@ function RegisteredTagsSection({
           const entity = demoEntities.find((item) => item.id === registeredTag.entityId);
 
           return (
-            <View key={registeredTag.entityId} style={styles.registeredRow}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              key={registeredTag.entityId}
+              onPress={() => onPressTag(registeredTag)}
+              style={styles.registeredRow}
+            >
               <View style={styles.registeredContent}>
                 <Text style={styles.registeredTitle}>{entity?.label ?? registeredTag.entityId}</Text>
                 <Text style={styles.registeredId}>{registeredTag.entityId}</Text>
               </View>
               <Text style={styles.registeredText}>{registeredTag.fingerprint.quality}</Text>
-            </View>
+            </TouchableOpacity>
           );
         })
       )}
     </Section>
+  );
+}
+
+function RegisteredTagDetailsModal({
+  onClose,
+  onDelete,
+  registeredTag,
+}: {
+  onClose(): void;
+  onDelete(entityId: string): void | Promise<void>;
+  registeredTag: RegisteredTag | null;
+}) {
+  const entity = registeredTag
+    ? demoEntities.find((item) => item.id === registeredTag.entityId)
+    : null;
+  const fingerprint = registeredTag?.fingerprint;
+
+  return (
+    <Modal animationType="slide" onRequestClose={onClose} transparent visible={Boolean(registeredTag)}>
+      <View style={styles.modalBackdrop}>
+        <View style={styles.modalPanel}>
+          <View style={styles.modalHeader}>
+            <View style={styles.modalTitleGroup}>
+              <Text style={styles.modalTitle}>{entity?.label ?? registeredTag?.entityId ?? 'Tag'}</Text>
+              <Text style={styles.modalSubtitle}>{registeredTag?.entityId ?? '-'}</Text>
+            </View>
+            <IconButton label="x" onPress={onClose} />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.modalContent}>
+            <DetailRow label="Qualidade" value={fingerprint?.quality} />
+            <DetailRow label="Fingerprint ID" value={fingerprint?.id} />
+            <DetailRow label="Plataforma" value={fingerprint?.platform} />
+            <DetailRow label="Criado em" value={formatDateTime(fingerprint?.createdAt ?? null)} />
+            <DetailRow label="Nome local" value={fingerprint?.localName} />
+            <DetailRow label="MAC" value={fingerprint?.macAddress} />
+            <DetailRow label="Peripheral ID" value={fingerprint?.peripheralId} />
+            <DetailRow label="Manufacturer data" value={fingerprint?.manufacturerData} multiline />
+            <DetailRow
+              label="Service UUIDs"
+              value={fingerprint?.serviceUuids.length ? fingerprint.serviceUuids.join(', ') : undefined}
+              multiline
+            />
+            <DetailRow
+              label="Service data"
+              value={fingerprint?.serviceData ? JSON.stringify(fingerprint.serviceData) : undefined}
+              multiline
+            />
+            <DetailRow
+              label="Beacon"
+              value={fingerprint?.beacon ? JSON.stringify(fingerprint.beacon) : undefined}
+              multiline
+            />
+            <DetailRow
+              label="Metadata"
+              value={registeredTag?.metadata ? JSON.stringify(registeredTag.metadata) : undefined}
+              multiline
+            />
+          </ScrollView>
+
+          <View style={styles.modalActions}>
+            <ActionButton label="Fechar" onPress={onClose} variant="secondary" />
+            {registeredTag ? (
+              <ActionButton label="Descadastrar" onPress={() => onDelete(registeredTag.entityId)} />
+            ) : null}
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+function DetailRow({
+  label,
+  multiline,
+  value,
+}: {
+  label: string;
+  multiline?: boolean;
+  value?: string | number | null;
+}) {
+  return (
+    <View style={styles.detailRow}>
+      <Text style={styles.detailLabel}>{label}</Text>
+      <Text style={[styles.detailValue, multiline && styles.detailValueMultiline]}>
+        {value === undefined || value === null || value === '' ? '-' : String(value)}
+      </Text>
+    </View>
   );
 }
 
@@ -849,6 +966,69 @@ const styles = StyleSheet.create({
   registeredText: {
     color: colors.muted,
     fontSize: 13,
+  },
+  modalBackdrop: {
+    backgroundColor: 'rgba(23, 32, 42, 0.42)',
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  modalPanel: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+    maxHeight: '88%',
+    padding: 16,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+    justifyContent: 'space-between',
+  },
+  modalTitleGroup: {
+    flex: 1,
+  },
+  modalTitle: {
+    color: colors.ink,
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  modalSubtitle: {
+    color: colors.muted,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  modalContent: {
+    gap: 8,
+    paddingVertical: 16,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'flex-end',
+  },
+  detailRow: {
+    backgroundColor: colors.panel,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 4,
+    padding: 10,
+  },
+  detailLabel: {
+    color: colors.muted,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  detailValue: {
+    color: colors.ink,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  detailValueMultiline: {
+    fontWeight: '500',
+    lineHeight: 18,
   },
   emptyState: {
     backgroundColor: colors.panel,

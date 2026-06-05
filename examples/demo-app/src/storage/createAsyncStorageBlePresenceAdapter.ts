@@ -43,6 +43,13 @@ export function createAsyncStorageBlePresenceAdapter(): BlePresenceAdapter {
   };
 }
 
+export async function deleteStoredTagRegistration(entityId: string): Promise<void> {
+  const registeredTags = await readJson<RegisteredTag[]>(registeredTagsKey, []);
+  const nextRegisteredTags = registeredTags.filter((tag) => tag.entityId !== entityId);
+
+  await AsyncStorage.setItem(registeredTagsKey, JSON.stringify(nextRegisteredTags));
+}
+
 async function readJson<TValue>(key: string, fallback: TValue): Promise<TValue> {
   const rawValue = await AsyncStorage.getItem(key);
 
