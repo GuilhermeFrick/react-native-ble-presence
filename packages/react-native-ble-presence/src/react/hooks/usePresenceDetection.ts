@@ -24,7 +24,9 @@ export function usePresenceDetection<TEntityId extends string = string>() {
       strategy: config.matchingStrategy,
     });
 
-    setCurrentMatch(match);
+    if (!sameMatch(state.currentMatch as PresenceMatch<TEntityId> | null, match)) {
+      setCurrentMatch(match);
+    }
 
     if (!match || lastReportedEntityIdRef.current === match.entityId) {
       return;
@@ -46,3 +48,22 @@ export function usePresenceDetection<TEntityId extends string = string>() {
   };
 }
 
+function sameMatch<TEntityId extends string>(
+  currentMatch: PresenceMatch<TEntityId> | null,
+  nextMatch: PresenceMatch<TEntityId> | null,
+): boolean {
+  if (!currentMatch && !nextMatch) {
+    return true;
+  }
+
+  if (!currentMatch || !nextMatch) {
+    return false;
+  }
+
+  return (
+    currentMatch.entityId === nextMatch.entityId &&
+    currentMatch.score === nextMatch.score &&
+    currentMatch.confidence === nextMatch.confidence &&
+    currentMatch.matchedBy.join('|') === nextMatch.matchedBy.join('|')
+  );
+}

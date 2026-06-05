@@ -14,3 +14,4 @@ export * from './native/scanner/createBlePlxScanner';
 export * from './native/scanner/noopBleScanner';
 export * from './native/scanner/normalizeBlePlxDevice';
 export * from './native/permissions/noopBlePermissionManager';
+export * from './native/permissions/createReactNativeBlePermissionManager';

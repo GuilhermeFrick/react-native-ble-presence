@@ -1,14 +1,16 @@
 import React, { useMemo } from 'react';
-import { BlePresenceProvider } from '@guilhermefrick/react-native-ble-presence';
+import {
+  BlePresenceProvider,
+  createBlePlxScanner,
+  createReactNativeBlePermissionManager,
+} from '@guilhermefrick/react-native-ble-presence';
 import { DemoScreen } from './src/DemoScreen';
 import { createMemoryBlePresenceAdapter } from './src/mocks/createMemoryBlePresenceAdapter';
-import { createMockBlePermissionManager } from './src/mocks/createMockBlePermissionManager';
-import { createMockBleScanner } from './src/mocks/createMockBleScanner';
 
 export default function App() {
   const adapter = useMemo(() => createMemoryBlePresenceAdapter(), []);
-  const permissionManager = useMemo(() => createMockBlePermissionManager(), []);
-  const scanner = useMemo(() => createMockBleScanner(), []);
+  const permissionManager = useMemo(() => createReactNativeBlePermissionManager(), []);
+  const scanner = useMemo(() => createBlePlxScanner(), []);
 
   return (
     <BlePresenceProvider adapter={adapter} permissionManager={permissionManager} scanner={scanner}>
@@ -16,4 +18,3 @@ export default function App() {
     </BlePresenceProvider>
   );
 }
-

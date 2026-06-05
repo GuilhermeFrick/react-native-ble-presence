@@ -102,7 +102,7 @@ export function DemoScreen() {
 
         <Section title="Tags proximas">
           {nearbyTags.length === 0 ? (
-            <EmptyState text="Nenhuma tag detectada" />
+            <EmptyState text="Nenhuma tag BLE detectada" />
           ) : (
             nearbyTags.map((tag) => (
               <TagRow
