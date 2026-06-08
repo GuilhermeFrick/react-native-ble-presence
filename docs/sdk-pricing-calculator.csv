@@ -1,0 +1,30 @@
+Item;Valor;Unidade;Observacao
+Horas estimadas;160;h;Horas humanas estimadas para discovery, SDK, demo, testes e documentacao
+Taxa hora;85;USD/h;Valor hora tecnico/comercial
+Tokens em milhoes;8;M tokens;Quantidade total estimada de tokens usados no desenvolvimento
+Custo por milhao de tokens;10;USD;Custo medio por 1 milhao de tokens
+Multiplicador operacional IA;5;x;Cobre overhead de iteracao, prompts, retrabalho e infraestrutura
+Fator de risco;35%;%;BLE, Android/iOS, background, GPS, testes em aparelho e incertezas de plataforma
+Margem;40%;%;Margem comercial desejada
+Valor agregado;7500;USD;Valor capturado pela economia/risco reduzido para o cliente
+;;;
+Resultado;Valor;Unidade;Formula
+Custo tecnico;=B2*B3;USD;Horas estimadas x taxa hora
+Custo IA;=B4*B5*B6;USD;Tokens em milhoes x custo por milhao x multiplicador operacional
+Preco base;=B12+B13;USD;Custo tecnico + custo IA
+Risco tecnico;=B14*B7;USD;Preco base x fator de risco
+Base com risco;=B14+B15;USD;Preco base + risco tecnico
+Margem comercial;=B16*B8;USD;Base com risco x margem
+Subtotal;=B16+B17;USD;Base com risco + margem
+Preco final;=B18+B9;USD;Subtotal + valor agregado
+;;;
+Cenarios;Valor sugerido;Unidade;Escopo
+MVP SDK + Demo + Android;18000;USD;SDK, demo, Android, documentacao e suporte inicial
+SDK + integracao assistida;32000;USD;SDK integrado no app real, endpoints, permissoes e testes Android
+SDK completo Android/iOS/background/campo;48000;USD;Android, iOS, background monitoring, testes com tags reais e validacao em campo
+;;;
+Tabela de risco;Percentual sugerido;Quando usar;Exemplo
+Baixo;10%;CRUD, telas simples, APIs conhecidas;Funcionalidade administrativa
+Medio;20%;Integracao mobile, permissoes, storage, hooks;SDK simples sem background
+Alto;35%;BLE, Android/iOS, GPS, regras de presenca;Este SDK em MVP tecnico
+Critico;50%;BLE background em producao, iOS real, campo e bateria;Operacao real com frota/ativos
