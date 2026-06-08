@@ -11,10 +11,13 @@ import {
   View,
 } from 'react-native';
 import {
+  createNativeBackgroundBleMonitor,
   useBlePermissions,
   useBleScanner,
   usePresenceDetection,
   useTagRegistration,
+  type BackgroundBleMonitorEvent,
+  type BackgroundBleMonitorFilter,
   type BleScanResult,
   type RegisteredTag,
 } from '@guilhermefrick/react-native-ble-presence';
@@ -28,6 +31,10 @@ type DemoView = 'registration' | 'detection';
 
 export function DemoScreen() {
   const [activeView, setActiveView] = useState<DemoView>('registration');
+  const [backgroundEvents, setBackgroundEvents] = useState<BackgroundBleMonitorEvent[]>([]);
+  const [backgroundMessage, setBackgroundMessage] = useState('Nao iniciado');
+  const [backgroundMonitoring, setBackgroundMonitoring] = useState(false);
+  const [backgroundMonitorAvailable, setBackgroundMonitorAvailable] = useState(false);
   const [selectedEntityId, setSelectedEntityId] = useState(demoEntities[0]?.id ?? '');
   const [selectedRegisteredTag, setSelectedRegisteredTag] = useState<RegisteredTag | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
@@ -38,6 +45,7 @@ export function DemoScreen() {
   const { currentMatch, refreshRegisteredTags, registeredTags } = usePresenceDetection();
   const { registerTag } = useTagRegistration();
   const gpsSpeed = useGpsSpeed();
+  const backgroundMonitor = useMemo(() => createNativeBackgroundBleMonitor(), []);
   const presenceRuleSettings = usePresenceRuleSettings();
   const latestTag = nearbyTags[0] ?? null;
   const ruledPresence = usePresenceRules({
@@ -61,6 +69,26 @@ export function DemoScreen() {
     void checkPermissions();
     void refreshRegisteredTags();
   }, [checkPermissions, refreshRegisteredTags]);
+
+  useEffect(() => {
+    const unsubscribe = backgroundMonitor.subscribe((event) => {
+      setBackgroundEvents((events) => [event, ...events].slice(0, 20));
+      setBackgroundMessage(`${event.type}: ${event.filterId ?? event.scanResult?.id ?? '-'}`);
+    });
+
+    async function loadBackgroundMonitor() {
+      const available = await backgroundMonitor.isAvailable();
+      const pendingEvents = await backgroundMonitor.getPendingEvents();
+      setBackgroundMonitorAvailable(available);
+      setBackgroundEvents(pendingEvents.slice(0, 20));
+      if (pendingEvents.length > 0) {
+        setBackgroundMessage(`${pendingEvents.length} evento(s) pendente(s) recuperado(s)`);
+      }
+    }
+
+    void loadBackgroundMonitor();
+    return unsubscribe;
+  }, [backgroundMonitor]);
 
   async function handleToggleScan() {
     if (isScanning) {
@@ -95,6 +123,25 @@ export function DemoScreen() {
     await refreshRegisteredTags();
   }
 
+  async function handleToggleBackgroundMonitoring() {
+    if (backgroundMonitoring) {
+      await backgroundMonitor.stop();
+      setBackgroundMonitoring(false);
+      setBackgroundMessage('Monitoramento background parado');
+      return;
+    }
+
+    const filters = buildBackgroundFilters(registeredTags);
+    if (filters.length === 0) {
+      setBackgroundMessage('Cadastre uma tag iBeacon para iniciar');
+      return;
+    }
+
+    await backgroundMonitor.start({ filters });
+    setBackgroundMonitoring(true);
+    setBackgroundMessage(`${filters.length} filtro(s) iBeacon monitorado(s)`);
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
@@ -109,6 +156,10 @@ export function DemoScreen() {
           <StatusPill label="Scanner" value={scannerStatus} />
           <StatusPill label="GPS" value={formatSpeed(gpsSpeed.speedKmh)} />
           <StatusPill label="Presenca" value={ruledPresence.status} />
+          <StatusPill
+            label="Background"
+            value={backgroundMonitorAvailable ? (backgroundMonitoring ? 'monitorando' : 'disponivel') : 'indisponivel'}
+          />
         </View>
 
         <View style={styles.actions}>
@@ -117,6 +168,12 @@ export function DemoScreen() {
           <ActionButton
             label={gpsSpeed.isWatching ? 'Parar GPS' : 'Iniciar GPS'}
             onPress={gpsSpeed.isWatching ? gpsSpeed.stop : gpsSpeed.start}
+            variant="secondary"
+          />
+          <ActionButton
+            disabled={!backgroundMonitorAvailable}
+            label={backgroundMonitoring ? 'Parar background' : 'Iniciar background'}
+            onPress={handleToggleBackgroundMonitoring}
             variant="secondary"
           />
         </View>
@@ -245,6 +302,28 @@ export function DemoScreen() {
               ) : (
                 <EmptyState text="Nenhum match BLE no momento" />
               )}
+            </Section>
+
+            <Section title="Monitor background">
+              <View style={styles.ruleBox}>
+                <Text style={styles.ruleStatus}>{backgroundMessage}</Text>
+                <Text style={styles.matchText}>
+                  Filtros iBeacon disponiveis: {buildBackgroundFilters(registeredTags).length}
+                </Text>
+                {backgroundEvents.length === 0 ? (
+                  <Text style={styles.matchText}>Nenhum evento background recebido</Text>
+                ) : (
+                  backgroundEvents.map((event) => (
+                    <View key={event.id} style={styles.backgroundEventRow}>
+                      <Text style={styles.registeredTitle}>{event.type}</Text>
+                      <Text style={styles.registeredId}>
+                        {event.filterId ?? event.scanResult?.id ?? event.message ?? '-'}
+                      </Text>
+                      <Text style={styles.registeredId}>{formatDateTime(event.occurredAt)}</Text>
+                    </View>
+                  ))
+                )}
+              </View>
             </Section>
 
             <Section title="Tags proximas">
@@ -620,6 +699,26 @@ function formatDateTime(value: string | null) {
   }
 
   return new Date(value).toLocaleTimeString();
+}
+
+function buildBackgroundFilters(registeredTags: RegisteredTag[]): BackgroundBleMonitorFilter[] {
+  const filters = new Map<string, BackgroundBleMonitorFilter>();
+
+  for (const registeredTag of registeredTags) {
+    const beacon = registeredTag.fingerprint.beacon;
+    if (beacon?.type !== 'ibeacon') {
+      continue;
+    }
+
+    const key = beacon.uuid.toLowerCase();
+    filters.set(key, {
+      id: `ibeacon:${key}`,
+      type: 'ibeacon',
+      uuid: key,
+    });
+  }
+
+  return [...filters.values()];
 }
 
 const colors = {
@@ -1029,6 +1128,12 @@ const styles = StyleSheet.create({
   detailValueMultiline: {
     fontWeight: '500',
     lineHeight: 18,
+  },
+  backgroundEventRow: {
+    borderTopColor: colors.border,
+    borderTopWidth: 1,
+    gap: 2,
+    paddingTop: 8,
   },
   emptyState: {
     backgroundColor: colors.panel,

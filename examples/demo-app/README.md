@@ -16,6 +16,8 @@ Assim, o fluxo pode ser avaliado no aparelho sem backend, mantendo os cadastros 
 - selecionar entidade na tela de cadastro;
 - cadastrar tag no armazenamento local;
 - detectar entidade atual na tela de deteccao usando regras de presenca;
+- iniciar monitoramento background para UUIDs iBeacon cadastrados;
+- recuperar eventos background pendentes ao reabrir o app;
 - visualizar confianca e campos usados no match.
 
 ## Regras de presenca do demo

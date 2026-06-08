@@ -89,6 +89,46 @@ export type BleScanner = {
   subscribe(listener: BleScannerListener): () => void;
 };
 
+export type BackgroundBleMonitorFilter =
+  | {
+      id: string;
+      type: 'ibeacon';
+      uuid: string;
+      major?: number;
+      minor?: number;
+    }
+  | {
+      id: string;
+      type: 'service_uuid';
+      serviceUuid: string;
+    };
+
+export type BackgroundBleMonitorOptions = {
+  filters: BackgroundBleMonitorFilter[];
+};
+
+export type BackgroundBleMonitorEventType = 'entered' | 'exited' | 'discovered' | 'error';
+
+export type BackgroundBleMonitorEvent = {
+  id: string;
+  type: BackgroundBleMonitorEventType;
+  filterId?: string;
+  platform: BlePlatform;
+  occurredAt: string;
+  scanResult?: BleScanResult;
+  message?: string;
+};
+
+export type BackgroundBleMonitorListener = (event: BackgroundBleMonitorEvent) => void;
+
+export type BackgroundBleMonitor = {
+  isAvailable(): Promise<boolean>;
+  start(options: BackgroundBleMonitorOptions): Promise<void>;
+  stop(): Promise<void>;
+  getPendingEvents(): Promise<BackgroundBleMonitorEvent[]>;
+  subscribe(listener: BackgroundBleMonitorListener): () => void;
+};
+
 export type BlePermissionManager = {
   checkPermissions(): Promise<BlePermissionStatus>;
   requestPermissions(): Promise<BlePermissionStatus>;

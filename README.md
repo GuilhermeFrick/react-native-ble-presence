@@ -10,6 +10,9 @@ O objetivo do projeto e permitir que aplicativos React Native incorporem recurso
 - [Especificacao funcional](docs/functional-specification.md)
 - [Plano de execucao](docs/execution-plan.md)
 - [Boas praticas de desenvolvimento](docs/development-guidelines.md)
+- [Memoria tecnica do projeto](docs/project-memory.md)
+- [Monitoramento em background](docs/background-monitoring.md)
+- [Plano de implementacao do background monitoring](docs/background-implementation-plan.md)
 
 ## Escopo inicial
 

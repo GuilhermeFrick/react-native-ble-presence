@@ -5,7 +5,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "files": [
+    "android",
     "dist",
+    "ios",
+    "react-native-ble-presence.podspec",
     "src"
   ],
   "scripts": {

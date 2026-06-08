@@ -1,0 +1,10 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+
+  <application>
+    <receiver
+      android:name=".BlePresenceBackgroundReceiver"
+      android:enabled="true"
+      android:exported="false" />
+  </application>
+</manifest>
